@@ -32,6 +32,18 @@ sudo build/nimbus_beacon_node \
     --web3-url=http://127.0.0.1:8551 \
     --jwt-secret=/tmp/jwtsecret
 ```
+Comando para verificar si el nodo está sincronizado:
+```bash
+curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' http://localhost:8545
+```
+Si está sincronizado devuelve la respuesta:
+```JSON
+{"jsonrpc":"2.0","id":1,"result":false}
+```
+De lo contrario devolverá una respuesta mas larga indicando el progreso de la sincronización, como por ejemplo:
+```JSON
+{"jsonrpc":"2.0","id":1,"result":{"currentBlock":"0x0","healedBytecodeBytes":"0x0","healedBytecodes":"0x0","healedTrienodeBytes":"0x0","healedTrienodes":"0x0","healingBytecode":"0x0","healingTrienodes":"0x0","highestBlock":"0x0","startingBlock":"0x0","syncedAccountBytes":"0x0","syncedAccounts":"0x0","syncedBytecodeBytes":"0x0","syncedBytecodes":"0x0","syncedStorage":"0x0","syncedStorageBytes":"0x0","txIndexFinishedBlocks":"0x0","txIndexRemainingBlocks":"0x1"}}
+```
 ## Paso 1: Recolectar las siguientes columnas de información de la mempool:
 TransactionHash,TransactionType,GasLimit,MaxPriorityFee,GananciaxTransaccion,TimeStamp,NetworkBlock,PeerCount <br> 
 Todo aquello relacionado a ganancias va a estar por defecto en Wei.
