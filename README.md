@@ -40,3 +40,10 @@ transacción. Igualmente existe un hard cap de 30 millones.
 -Una vez construidos ambos csv, se realiza un test de una sumatoria de la columna BlockReward y
 se revisa que ambos den el mismo resultado, ya que a través de la lógica incorporada
 deberían ser equivalentes.
+
+## Paso3: Conseguir datos de red real que vayan desde NetworkBlock0 hasta NetworkBlock i-1, y que contenga las siguientes columnas:
+TransactionHash,TransactionType,GasUsed,MaxPriorityFee,GananciaxTransaccion(post
+BaseFee),BaseFee,BlockNumber,BlockGas,BlockReward(como sumatoria de las
+transacciones contenidas en un bloque, no como el block reward que aparece en
+EtherScans). El valor de BlockReward y BlockGas aparecen solamente en la fila de la
+ultima transaccion de cada bloque. Al igual que en los algoritmos, se hace la conversión de Wei a Gwei para las casillas de BlockReward y GananciaxTransaccion
