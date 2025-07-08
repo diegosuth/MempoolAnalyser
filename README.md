@@ -1,6 +1,37 @@
 # MempoolAnalyser
 Repositorio para automatizar proceso de recoleccion de transacciones, test de algoritmos y comparación de resultados
 # Procedimiento general
+## Paso 0: Configurar nodo de forma local
+En este caso se entregarán los comandos necesarios para inicializar un nodo completo en Sepolia en MacOS usando Nimbus para el cliente de consenso y Geth para el de ejecución.
+Comando Geth:
+```bash
+sudo geth \
+--sepolia \
+--http \
+--http.api eth,net,engine,web3 \
+--ws \
+--ws.api eth,net,engine,web3 \
+--authrpc.jwtsecret /tmp/jwtsecret \
+--syncmode snap \
+--gcmode archive \
+--cache 16384 \
+--maxpeers 1000
+```
+Comando Nimbus para sincronizar desde un nodo de confianza(ahorro de tiempo):
+```bash
+build/nimbus_beacon_node trustedNodeSync \
+  --network:sepolia \
+  --data-dir=build/data/shared_sepolia_0 \
+  --trusted-node-url=https://checkpoint-sync.sepolia.ethpandaops.io
+```
+Comando Nimbus para inicializar cliente de consenso:
+```bash
+sudo build/nimbus_beacon_node \
+    --network=sepolia \
+    --data-dir=build/data/shared_sepolia_0 \
+    --web3-url=http://127.0.0.1:8551 \
+    --jwt-secret=/tmp/jwtsecret
+```
 ## Paso 1: Recolectar las siguientes columnas de información de la mempool:
 TransactionHash,TransactionType,GasLimit,MaxPriorityFee,GananciaxTransaccion,TimeStamp,NetworkBlock,PeerCount <br> 
 Todo aquello relacionado a ganancias va a estar por defecto en Wei.
