@@ -47,6 +47,7 @@ De lo contrario devolverá una respuesta mas larga indicando el progreso de la s
 ## Paso 1: Recolectar las siguientes columnas de información de la mempool:
 TransactionHash,TransactionType,GasLimit,MaxPriorityFee,GananciaxTransaccion,TimeStamp,NetworkBlock,PeerCount <br> 
 Todo aquello relacionado a ganancias va a estar por defecto en Wei, pero es mejor idea convertirlo todo a Gwei desde el momento que llega así se evitan errores de int muy grandes luego.
+Se escribe cada un minuto en el csv así se evita overflow en la memoria HEAP.
 
 ## Paso 2: Programar y usar algoritmos greedy y fcfs y que el csv output tenga las siguientes columnas:
 TransactionHash,TransactionType,GasLimit,MaxPriorityFee,GananciaxTransaccion,TimeSta
