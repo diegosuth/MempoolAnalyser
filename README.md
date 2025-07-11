@@ -46,15 +46,16 @@ De lo contrario devolverá una respuesta mas larga indicando el progreso de la s
 ```
 ## Paso 1: Recolectar las siguientes columnas de información de la mempool:
 TransactionHash,TransactionType,GasLimit,MaxPriorityFee,GananciaxTransaccion,TimeStamp,NetworkBlock,PeerCount <br> 
-Todo aquello relacionado a ganancias va a estar por defecto en Wei.
+Todo aquello relacionado a ganancias va a estar por defecto en Wei, pero es mejor idea convertirlo todo a Gwei desde el momento que llega así se evitan errores de int muy grandes luego.
 
 ## Paso 2: Programar y usar algoritmos greedy y fcfs y que el csv output tenga las siguientes columnas:
 TransactionHash,TransactionType,GasLimit,MaxPriorityFee,GananciaxTransaccion,TimeSta
-mp,NetworkBlock,BlockNumber,BlockReward,BlockGas
+mp,BlockNumber,BlockReward,BlockGas
 -BlockReward sea la sumatoria de las ganancias de cada transaccion, GananciaxTransaccion y BlockReward se colocan en Gwei. BlockReward y
 BlockGas solo aparecen en la fila de la ultima transaccion del bloque.
 -El algoritmo greedy utiliza MaxHeap para ordenar las transacciones a medida que las va parseando del csv, y se realiza una división entre MaxPriorityFee y GasLimit, dónde los valores más altos son aquellos deseados.
--El algoritmo fcfs va incluyendo en los bloques transacciones dependiendo de su orden de llegada.
+-El algoritmo fcfs va incluyendo en los bloques transacciones dependiendo de su orden de llegada, imitando lo que hace la red Sepolia.
+
 ## Paso2.1: Los algoritmos tienen las siguientes características:
 -Una vez que una transaccion es incluida en un bloque, deja de ser considerada para
 bloques futuros.
@@ -62,14 +63,9 @@ bloques futuros.
 -Si una transaccion no es incluida en un bloque, puede ser considerada para bloques
 futuros hasta que sea incorporada en uno, después de eso deja de ser considerada.
 
--Existe un target de bloques que cumplan la regla de bloques cada 12
-segundos (43200segundos / 12 bloques para 12 horas), así al hacer la comparación entre
-algoritmos vs red real es mas realista.(Actualmente la cantidad de bloques de cada
-algoritmo supera con diferencia a la real debido a la diferencia de volumen de datos).
-
 -Solo se pueden ver t segundos adelante en cada bloque(por ejemplo si la primera
 transaccion ocurre en t=20, el bloque se arma unicamente con transacciones
-t<=28).  
+t<=32), imitando el comportamiento de la red real.
 
 -Existe una lista, donde se almacenan todas las transacciones que cumplan el requisito de la ventana de tiempo, y si son incluidas por el
 algoritmo que se eliminen de la lista. Así las que no son incorporadas en un bloque son
@@ -84,9 +80,29 @@ transacción. Igualmente existe un hard cap de 30 millones.
 se revisa que ambos den el mismo resultado, ya que a través de la lógica incorporada
 deberían ser equivalentes.
 
-## Paso3: Conseguir datos de red real que vayan desde NetworkBlock0 hasta NetworkBlock i-1, y que contenga las siguientes columnas:
+## Paso 3: Conseguir datos de red real que vayan desde NetworkBlock0 hasta NetworkBlock i-1, y que contenga las siguientes columnas:
 TransactionHash,TransactionType,GasUsed,MaxPriorityFee,GananciaxTransaccion(post
 BaseFee),BaseFee,BlockNumber,BlockGas,BlockReward(como sumatoria de las
 transacciones contenidas en un bloque, no como el block reward que aparece en
 EtherScans). El valor de BlockReward y BlockGas aparecen solamente en la fila de la
 ultima transaccion de cada bloque. Al igual que en los algoritmos, se hace la conversión de Wei a Gwei para las casillas de BlockReward y GananciaxTransaccion
+
+## Paso4: A través de pandas en python, analizar los siguientes datos de los 3 csv:
+1)Hacer un grafico donde el eje x sea el numero de bloque y el eje y la ganancia, así se
+puede ver si el fcfs sigue a la red. Puede ser conveniente normalizar el numero de bloque
+ya que en los algoritmos parte desde el 1 mientras que en mined parte desde el numero de
+bloque real. Normalizar el BlockNumber ya que mined tiene el BlockNumber de la red real y no como el de los algoritmos que parte desde 1.
+1.1)Colocar ganancias totales de cada csv(sumatoria BlockReward) y la cantidad de
+bloques que existieron.
+1.2)Colocar las 5 transacciones más valiosas de cada csv(respecto a
+GananciaxTransaccion).
+1.3)Hacer la sumatoria de las BaseFee para ver del total cuanto fue disminuido por ello.
+1.4)Calcular ganancia por bloque y frecuencia de bloque para ver si cumple con el estándar de ethereum de un bloque cada 12 segundos. Esto se verifica con el tiempo total(usando el ultimo y el primer TimeStamp)
+1.5) Ocupancia promedio por bloque en gas.
+1.6) Top 5 bloques más valiosos por csv.
+2)Analizar cantidad de coincidencias de transacciones entre cada algoritmo y el de mined
+a traves del TransactionHash.
+2.1)Colocar la latencia para transacciones coincidentes respecto al numero de bloque de
+fcfs y Sepolia.
+3)Realizar este mismo análisis dos veces más, quitando todas las transacciones tipo 2 y
+otro con solo las transacciones tipo 2.
