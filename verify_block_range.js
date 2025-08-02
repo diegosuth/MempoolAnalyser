@@ -2,8 +2,8 @@
  * =================================================================
  * Archivo: verify_block_range.js
  * Descripción: Script para verificar si el rango de bloques (primero y último)
- * coincide entre el archivo de datos de la mempool y el archivo de
- * datos de transacciones minadas.
+ * y el conteo de transacciones son consistentes entre los archivos de datos
+ * de la mempool y de transacciones minadas.
  *
  * Para ejecutar:
  * 1. Asegúrate de tener 'csv-parse' instalado (`npm install csv-parse`).
@@ -21,13 +21,13 @@ const MEMPOOL_CSV_PATH = './mempool_data_sepolia.csv';
 const MINED_CSV_PATH = './mined_transactions_data.csv';
 
 /**
- * Función para leer un archivo CSV y extraer el rango de bloques.
+ * Función para leer un archivo CSV y extraer estadísticas (rango de bloques y conteo de transacciones).
  * Utiliza streams para manejar archivos grandes sin consumir mucha memoria.
  * @param {string} filePath - La ruta al archivo CSV.
  * @param {string} columnName - El nombre de la columna que contiene el número de bloque.
- * @returns {Promise<{min: number, max: number}>} Un objeto con el bloque mínimo y máximo.
+ * @returns {Promise<{min: number, max: number, count: number}>} Un objeto con el bloque mínimo, máximo y el conteo de transacciones.
  */
-function getBlockRange(filePath, columnName) {
+function getFileStats(filePath, columnName) {
     return new Promise((resolve, reject) => {
         if (!fs.existsSync(filePath)) {
             return reject(new Error(`El archivo no fue encontrado: ${filePath}`));
@@ -35,7 +35,7 @@ function getBlockRange(filePath, columnName) {
 
         let minBlock = Infinity;
         let maxBlock = -Infinity;
-        let isFirstRow = true;
+        let txCount = 0; // Contador para las transacciones
 
         const parser = fs.createReadStream(filePath)
             .pipe(parse({
@@ -45,6 +45,7 @@ function getBlockRange(filePath, columnName) {
             }));
 
         parser.on('data', (row) => {
+            txCount++; // Incrementar el contador por cada fila (transacción)
             const blockNum = parseInt(row[columnName], 10);
             if (!isNaN(blockNum)) {
                 if (blockNum < minBlock) {
@@ -60,7 +61,7 @@ function getBlockRange(filePath, columnName) {
             if (minBlock === Infinity || maxBlock === -Infinity) {
                 return reject(new Error(`No se encontraron números de bloque válidos en la columna '${columnName}' del archivo ${filePath}`));
             }
-            resolve({ min: minBlock, max: maxBlock });
+            resolve({ min: minBlock, max: maxBlock, count: txCount });
         });
 
         parser.on('error', (err) => {
@@ -73,26 +74,29 @@ function getBlockRange(filePath, columnName) {
  * Función principal que ejecuta la verificación.
  */
 async function main() {
-    console.log('--- Iniciando Verificación de Rango de Bloques ---');
+    console.log('--- Iniciando Verificación de Rango de Bloques y Conteo de Transacciones ---');
 
     try {
-        // Obtener los rangos de ambos archivos en paralelo
-        const [mempoolRange, minedRange] = await Promise.all([
-            getBlockRange(MEMPOOL_CSV_PATH, 'NetworkBlock'),
-            getBlockRange(MINED_CSV_PATH, 'BlockNumber')
+        // Obtener las estadísticas de ambos archivos en paralelo
+        const [mempoolStats, minedStats] = await Promise.all([
+            getFileStats(MEMPOOL_CSV_PATH, 'NetworkBlock'),
+            getFileStats(MINED_CSV_PATH, 'BlockNumber')
         ]);
 
         console.log(`\nArchivo Mempool ('${MEMPOOL_CSV_PATH}'):`);
-        console.log(`  -> Primer bloque (min NetworkBlock): ${mempoolRange.min}`);
-        console.log(`  -> Último bloque (max NetworkBlock): ${mempoolRange.max}`);
+        console.log(`  -> Primer bloque (min NetworkBlock): ${mempoolStats.min}`);
+        console.log(`  -> Último bloque (max NetworkBlock): ${mempoolStats.max}`);
+        console.log(`  -> Transacciones totales: ${mempoolStats.count.toLocaleString('es-CL')}`);
+
 
         console.log(`\nArchivo Mined ('${MINED_CSV_PATH}'):`);
-        console.log(`  -> Primer bloque (min BlockNumber):  ${minedRange.min}`);
-        console.log(`  -> Último bloque (max BlockNumber):  ${minedRange.max}`);
+        console.log(`  -> Primer bloque (min BlockNumber):  ${minedStats.min}`);
+        console.log(`  -> Último bloque (max BlockNumber):  ${minedStats.max}`);
+        console.log(`  -> Transacciones totales: ${minedStats.count.toLocaleString('es-CL')}`);
 
         // Comparar los resultados
-        const firstBlockMatch = mempoolRange.min === minedRange.min;
-        const lastBlockMatch = mempoolRange.max === minedRange.max;
+        const firstBlockMatch = mempoolStats.min === minedStats.min;
+        const lastBlockMatch = mempoolStats.max === minedStats.max;
 
         console.log('\n--- Resultado de la Verificación ---');
         if (firstBlockMatch && lastBlockMatch) {
@@ -100,10 +104,10 @@ async function main() {
         } else {
             console.log('❌ ¡FALLO! Los rangos de bloques NO coinciden.');
             if (!firstBlockMatch) {
-                console.log(`  - El primer bloque no coincide: Mempool (${mempoolRange.min}) vs Mined (${minedRange.min})`);
+                console.log(`  - El primer bloque no coincide: Mempool (${mempoolStats.min}) vs Mined (${minedStats.min})`);
             }
             if (!lastBlockMatch) {
-                console.log(`  - El último bloque no coincide: Mempool (${mempoolRange.max}) vs Mined (${minedRange.max})`);
+                console.log(`  - El último bloque no coincide: Mempool (${mempoolStats.max}) vs Mined (${minedStats.max})`);
             }
         }
         console.log('------------------------------------');

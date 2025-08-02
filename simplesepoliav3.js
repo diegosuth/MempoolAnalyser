@@ -25,7 +25,7 @@ const OUTPUT_CSV_PATH = './fcfs_results.csv';
 const BLOCK_INTERVAL_SECONDS = 12;
 const GAS_TARGET = 30000000n;
 const GAS_HARD_CAP = 60000000n;
-const MAX_EXTRA_BLOCKS = 1000;
+const MAX_EXTRA_BLOCKS = 10000; // Aumentado para permitir más bloques extra
 
 // =================================================================
 // --- LÓGICA DEL ALGORITMO FCFS (CON PERSISTENCIA) ---
