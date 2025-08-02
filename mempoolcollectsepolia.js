@@ -6,7 +6,7 @@ import fs from 'fs';
 const NODE_WSS_URL = 'ws://localhost:8546';
 const FLUSH_INTERVAL = 60000;
 const CSV_FILE_PATH = './mempool_data_sepolia.csv';
-const RUN_DURATION = 3600000; // 1 hora. null para ejecución infinita.
+const RUN_DURATION = 3600000 * 12; // 12 horas. null para ejecución infinita.
 // --- Fin de la Configuración ---
 
 let transactionBuffer = [];
