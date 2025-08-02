@@ -25,7 +25,7 @@ const OUTPUT_CSV_PATH = './fcfs_results.csv';
 const BLOCK_INTERVAL_SECONDS = 12;
 const GAS_TARGET = 30000000n;
 const GAS_HARD_CAP = 60000000n;
-const MAX_EXTRA_BLOCKS = 10000; // Aumentado para permitir más bloques extra
+const MAX_EXTRA_BLOCKS = 100; // Aumentado para permitir más bloques extra
 
 // =================================================================
 // --- LÓGICA DEL ALGORITMO FCFS (CON PERSISTENCIA) ---
@@ -78,7 +78,9 @@ function buildBlocksFCFS(transactions) {
             }
 
             if (currentBlockTxs.length > 0) {
-                console.log(`-> Bloque #${blockNumber} construido con ${currentBlockTxs.length} transacciones.`);
+                // --- CORRECCIÓN ---
+                // Se añade el gas usado al mensaje de la consola.
+                console.log(`-> Bloque #${blockNumber} construido con ${currentBlockTxs.length} transacciones. Gas usado: ${currentBlockGas.toString()}`);
                 currentBlockTxs.forEach((tx, index) => {
                     tx.BlockNumber = blockNumber;
                     if (index === currentBlockTxs.length - 1) {
@@ -118,7 +120,9 @@ function buildBlocksFCFS(transactions) {
 
         if (currentBlockTxs.length > 0) {
             extraBlocksBuilt++;
-            console.log(`-> Bloque Extra #${blockNumber} construido con ${currentBlockTxs.length} transacciones.`);
+            // --- CORRECCIÓN ---
+            // Se añade el gas usado al mensaje de la consola para los bloques extra.
+            console.log(`-> Bloque Extra #${blockNumber} construido con ${currentBlockTxs.length} transacciones. Gas usado: ${currentBlockGas.toString()}`);
             currentBlockTxs.forEach((tx, index) => {
                 tx.BlockNumber = blockNumber;
                 if (index === currentBlockTxs.length - 1) {

@@ -1,2 +1,4 @@
 mempool_data_sepolia.csv
 mined_transactions_data.csv
+greedy_results_fixed.csv
+fcfs_results.csv
