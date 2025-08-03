@@ -1,11 +1,11 @@
 /**
  * =================================================================
- * Archivo: fcfs_persistent.js
- * Descripción: Versión mejorada del algoritmo FCFS que NO descarta
- * transacciones. Las transacciones no incluidas se mantienen en el pool
- * para ser consideradas en bloques futuros.
+ * Archivo: fcfs_persistent_fixed.js
+ * Descripción: Versión corregida del algoritmo FCFS. Soluciona el error
+ * que causaba la terminación prematura de la simulación y añade
+ * logging del gas usado por bloque.
  *
- * EJECUCIÓN: node simplesepoliav3.js
+ * EJECUCIÓN: node fcfs_persistent_fixed.js
  * =================================================================
  */
 
@@ -19,7 +19,6 @@ import { createObjectCsvWriter } from 'csv-writer';
 // =================================================================
 
 const INPUT_CSV_PATH = './mempool_data_sepolia.csv';
-// CORRECCIÓN: Nombre de archivo de salida estandarizado
 const OUTPUT_CSV_PATH = './fcfs_results.csv';
 
 const BLOCK_INTERVAL_SECONDS = 12;
@@ -28,11 +27,11 @@ const GAS_HARD_CAP = 60000000n;
 const MAX_EXTRA_BLOCKS = 100; // Aumentado para permitir más bloques extra
 
 // =================================================================
-// --- LÓGICA DEL ALGORITMO FCFS (CON PERSISTENCIA) ---
+// --- LÓGICA DEL ALGORITMO FCFS (CORREGIDA) ---
 // =================================================================
 
 function buildBlocksFCFS(transactions) {
-    console.log("-> Ejecutando Algoritmo FCFS (Versión con Persistencia)...");
+    console.log("-> Ejecutando Algoritmo FCFS (Versión Corregida y con Persistencia)...");
 
     const cleanTxs = transactions.map(tx => {
         try {
@@ -59,7 +58,12 @@ function buildBlocksFCFS(transactions) {
     let blockNumber = 1;
     let blockStartTime = availableTxs[0].timeStampNum;
 
-    while (availableTxs.length > 0 && blockStartTime <= availableTxs[availableTxs.length - 1].timeStampNum) {
+    // --- CORRECCIÓN CLAVE ---
+    // Se establece un final de simulación fijo basado en la última transacción del dataset original.
+    const simulationEndTime = availableTxs[availableTxs.length - 1].timeStampNum;
+
+    // Se usa 'simulationEndTime' en la condición del bucle para asegurar que se procese el tiempo completo.
+    while (availableTxs.length > 0 && blockStartTime <= simulationEndTime) {
         const candidates = availableTxs.filter(tx => tx.timeStampNum <= blockStartTime + BLOCK_INTERVAL_SECONDS);
         if (candidates.length > 0) {
             let currentBlockTxs = [];
@@ -78,7 +82,6 @@ function buildBlocksFCFS(transactions) {
             }
 
             if (currentBlockTxs.length > 0) {
-                // --- CORRECCIÓN ---
                 // Se añade el gas usado al mensaje de la consola.
                 console.log(`-> Bloque #${blockNumber} construido con ${currentBlockTxs.length} transacciones. Gas usado: ${currentBlockGas.toString()}`);
                 currentBlockTxs.forEach((tx, index) => {
@@ -120,7 +123,6 @@ function buildBlocksFCFS(transactions) {
 
         if (currentBlockTxs.length > 0) {
             extraBlocksBuilt++;
-            // --- CORRECCIÓN ---
             // Se añade el gas usado al mensaje de la consola para los bloques extra.
             console.log(`-> Bloque Extra #${blockNumber} construido con ${currentBlockTxs.length} transacciones. Gas usado: ${currentBlockGas.toString()}`);
             currentBlockTxs.forEach((tx, index) => {
@@ -177,7 +179,7 @@ async function writeCsv(filePath, data) {
 }
 
 async function main() {
-    console.log('Iniciando el procesador FCFS (versión con persistencia)...');
+    console.log('Iniciando el procesador FCFS (versión corregida)...');
     try {
         const transactions = await readCsv(INPUT_CSV_PATH);
         if (transactions.length === 0) {

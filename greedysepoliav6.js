@@ -1,11 +1,10 @@
 /**
  * =================================================================
- * Archivo: greedy_persistent.js
- * Descripción: Versión mejorada del algoritmo Greedy que NO descarta
- * transacciones. Las transacciones no incluidas se mantienen en el pool
- * para ser consideradas en bloques futuros.
+ * Archivo: greedy_persistent_fixed.js
+ * Descripción: Versión corregida del algoritmo Greedy. Soluciona el error
+ * que causaba una simulación de tiempo incorrecta.
  *
- * EJECUCIÓN: node greedysepoliav6.js
+ * EJECUCIÓN: node greedy_persistent_fixed.js
  * =================================================================
  */
 
@@ -19,7 +18,6 @@ import { createObjectCsvWriter } from 'csv-writer';
 // =================================================================
 
 const INPUT_CSV_PATH = './mempool_data_sepolia.csv';
-// CORRECCIÓN: Nombre de archivo de salida estandarizado
 const OUTPUT_CSV_PATH = './greedy_results_fixed.csv';
 
 const BLOCK_INTERVAL_SECONDS = 12;
@@ -29,6 +27,7 @@ const MAX_EXTRA_BLOCKS = 100; // Aumentado para permitir más bloques extra
 
 // =================================================================
 // --- CLASE MAX-HEAP ---
+// (Sin cambios)
 // =================================================================
 class MaxHeap {
     constructor() { this.heap = []; }
@@ -76,10 +75,10 @@ class MaxHeap {
 }
 
 // =================================================================
-// --- LÓGICA DEL ALGORITMO GREEDY (CON PERSISTENCIA) ---
+// --- LÓGICA DEL ALGORITMO GREEDY (CORREGIDA) ---
 // =================================================================
 function buildBlocksGreedy(transactions) {
-    console.log("-> Ejecutando Algoritmo Greedy (Versión con Persistencia)...");
+    console.log("-> Ejecutando Algoritmo Greedy (Versión Corregida y con Persistencia)...");
 
     const cleanTxs = transactions.map(tx => {
         try {
@@ -111,7 +110,12 @@ function buildBlocksGreedy(transactions) {
     let blockNumber = 1;
     let blockStartTime = availableTxs[0].timeStampNum;
 
-    while (availableTxs.length > 0 && blockStartTime <= availableTxs[availableTxs.length - 1].timeStampNum) {
+    // --- CORRECCIÓN CLAVE ---
+    // Se establece un final de simulación fijo basado en la última transacción del dataset original.
+    const simulationEndTime = availableTxs[availableTxs.length - 1].timeStampNum;
+
+    // Se usa 'simulationEndTime' en la condición del bucle para asegurar que se procese el tiempo completo.
+    while (availableTxs.length > 0 && blockStartTime <= simulationEndTime) {
         const candidates = availableTxs.filter(tx => tx.timeStampNum <= blockStartTime + BLOCK_INTERVAL_SECONDS);
         if (candidates.length > 0) {
             const txHeap = new MaxHeap();
@@ -176,7 +180,7 @@ function buildBlocksGreedy(transactions) {
 
         if (currentBlockTxs.length > 0) {
             extraBlocksBuilt++;
-            console.log(`-> Bloque Extra #${blockNumber} construido con ${currentBlockTxs.length} transacciones.`);
+            console.log(`-> Bloque Extra #${blockNumber} construido con ${currentBlockTxs.length} transacciones. Gas usado: ${currentBlockGas.toString()}`);
             currentBlockTxs.forEach((tx, index) => {
                 tx.BlockNumber = blockNumber;
                 if (index === currentBlockTxs.length - 1) {
@@ -231,7 +235,7 @@ async function writeCsv(filePath, data) {
 }
 
 async function main() {
-    console.log('Iniciando el procesador Greedy (versión con persistencia)...');
+    console.log('Iniciando el procesador Greedy (versión corregida)...');
     try {
         const transactions = await readCsv(INPUT_CSV_PATH);
         if (transactions.length === 0) {
