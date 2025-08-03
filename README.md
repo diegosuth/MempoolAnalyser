@@ -125,3 +125,6 @@ fcfs y Sepolia. <br>
 
 3)Realizar este mismo análisis dos veces más, quitando todas las transacciones tipo 2 y
 otro con solo las transacciones tipo 2.
+https://docs.chainstack.com/docs/ethereum-how-to-analyze-pending-blocks
+https://www.quicknode.com/guides/ethereum-development/transactions/how-to-access-ethereum-mempool#:~:text=For%20example%2C%20the%20default%20settings,and%20depend%20on%20their%20settings.
+https://docs.flashbots.net/flashbots-mev-boost/block-builders
