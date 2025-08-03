@@ -1,9 +1,9 @@
 /**
  * =================================================================
  * Archivo: recoleccionminado_final.js
- * Descripción: Versión robusta y optimizada del script que combina
- * el procesamiento en paralelo con la consistencia de unidades (Wei)
- * y nombres de columnas para la comparación de datos.
+ * Descripción: Versión robusta y optimizada del script.
+ * CORRECCIÓN: Ahora calcula el rango de bloques a escanear basándose
+ * en la duración de los timestamps, para coincidir con los simuladores.
  *
  * EJECUCIÓN: node recoleccionminadov2.js
  * =================================================================
@@ -21,12 +21,12 @@ import { parse } from 'csv-parse';
 
 const NODE_URL = 'http://127.0.0.1:8545';
 const INPUT_CSV_FOR_RANGE = './mempool_data_sepolia.csv';
-// CORRECCIÓN: Nombre de archivo de salida estandarizado
 const OUTPUT_CSV_PATH = './mined_transactions_data.csv';
 
 const BATCH_SIZE = 70;
 const MAX_RETRIES = 10;
 const RETRY_DELAY_MS = 1000;
+const SECONDS_PER_BLOCK = 12;
 
 // =================================================================
 // --- FUNCIÓN DE LECTURA DE CSV ---
@@ -83,6 +83,7 @@ async function processBlockWithRetries(blockNumber, provider) {
                     BlockNumber: block.number,
                     BlockGas: '',
                     BlockReward: '',
+                    TimeStamp: new Date(block.timestamp * 1000).toISOString(),
                 });
             }
 
@@ -113,7 +114,7 @@ async function processBlockWithRetries(blockNumber, provider) {
 // --- SCRIPT PRINCIPAL ---
 // =================================================================
 async function main() {
-    console.log('Iniciando el recolector de transacciones minadas (versión robusta y corregida)...');
+    console.log('Iniciando el recolector de transacciones minadas (versión corregida)...');
     try {
         const provider = new ethers.JsonRpcProvider(NODE_URL);
         const network = await provider.getNetwork();
@@ -123,17 +124,35 @@ async function main() {
         const mempoolTxs = await readCsv(INPUT_CSV_FOR_RANGE);
         if (mempoolTxs.length === 0) throw new Error("El archivo de entrada está vacío.");
         
-        let startBlock = Infinity, endBlock = -Infinity;
+        // --- CORRECCIÓN CLAVE: Calcular rango basado en TIMESTAMPS ---
+        let startBlock = Infinity;
+        let minTimestamp = Infinity;
+        let maxTimestamp = -Infinity;
+
         for (const tx of mempoolTxs) {
             const blockNum = parseInt(tx.NetworkBlock, 10);
-            if (!isNaN(blockNum)) {
-                if (blockNum < startBlock) startBlock = blockNum;
-                if (blockNum > endBlock) endBlock = blockNum;
+            const timestamp = Date.parse(tx.TimeStamp);
+
+            if (!isNaN(blockNum) && blockNum < startBlock) {
+                startBlock = blockNum;
+            }
+            if (!isNaN(timestamp)) {
+                if (timestamp < minTimestamp) minTimestamp = timestamp;
+                if (timestamp > maxTimestamp) maxTimestamp = timestamp;
             }
         }
-        if (startBlock === Infinity) throw new Error("No se encontraron números de bloque válidos.");
 
-        console.log(`Rango de bloques a analizar: Desde ${startBlock} hasta ${endBlock}`);
+        if (startBlock === Infinity || minTimestamp === Infinity) {
+            throw new Error("No se encontraron bloques o timestamps válidos en el archivo de entrada.");
+        }
+
+        const durationInSeconds = (maxTimestamp - minTimestamp) / 1000;
+        const expectedBlocks = Math.round(durationInSeconds / SECONDS_PER_BLOCK);
+        const endBlock = startBlock + expectedBlocks;
+        // --- FIN DE LA CORRECCIÓN ---
+
+        console.log(`Duración de datos: ${durationInSeconds.toFixed(2)} segundos.`);
+        console.log(`Rango de bloques a analizar: Desde ${startBlock} hasta ${endBlock} (~${expectedBlocks} bloques)`);
         
         const fileExists = fs.existsSync(OUTPUT_CSV_PATH);
         const csvWriter = createObjectCsvWriter({
@@ -148,6 +167,7 @@ async function main() {
                 { id: 'BlockNumber', title: 'BlockNumber' },
                 { id: 'BlockGas', title: 'BlockGas' },
                 { id: 'BlockReward', title: 'BlockReward' },
+                { id: 'TimeStamp', title: 'TimeStamp' },
             ],
             append: fileExists
         });
